@@ -3,11 +3,13 @@ import Link from 'next/link';
 import Header from '../components/Header';
 import { FiCalendar, FiUser } from 'react-icons/fi';
 import Prismic from '@prismicio/client';
-
 import { getPrismicClient } from '../services/prismic';
-
 import commonStyles from '../styles/common.module.scss';
 import styles from './home.module.scss';
+import { useState } from 'react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import Head from 'next/head';
 
 interface Post {
   uid?: string;
@@ -29,49 +31,92 @@ interface HomeProps {
 }
 
 export default function Home({ postsPagination }: HomeProps): JSX.Element {
+  const formattedPost = postsPagination.results.map(post => {
+    return {
+      ...post,
+      first_publication_date: format(
+        new Date(post.first_publication_date),
+        'dd MMM yyyy',
+        {
+          locale: ptBR,
+        }
+      ),
+    };
+  });
+
+  const [posts, setPosts] = useState<Post[]>(formattedPost);
+  const [nextPage, setNextPage] = useState(postsPagination.next_page);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  async function handleNextPage(): Promise<void> {
+    if (currentPage !== 1 && nextPage === null) {
+      return;
+    }
+
+    const postsResults = await fetch(`${nextPage}`).then(response =>
+      response.json()
+    );
+    setNextPage(postsResults.next_page);
+    setCurrentPage(postsResults.page);
+
+    const newPosts = postsResults.results.map(post => {
+      return {
+        uid: post.uid,
+        first_publication_date: format(
+          new Date(post.first_publication_date),
+          'dd MMM yyyy',
+          {
+            locale: ptBR,
+          }
+        ),
+        data: {
+          title: post.data.title,
+          subtitle: post.data.subtitle,
+          author: post.data.author,
+        },
+      }
+    });
+
+    setPosts([...posts, ...newPosts]);
+  }
+
   return (
     <>
+    <Head>
+      <title> Home | spaceTraveling </title>
+    </Head>
+
       <main className={commonStyles.container}>
         <Header />
 
         <div className={styles.posts}>
-          <Link href="/">
-            <a className={styles.post}>
-              <strong>Algum título</strong>
-              <p>Pensando em sincronizacao em vez de ciclos de vida.</p>
-              <ul>
-                <li>
-                  <FiCalendar />
-                  15 mar 2021
-                </li>
-                <li>
-                  <FiUser />
-                  Victor Yuri
-                </li>
-              </ul>
-            </a>
-          </Link>
+          {posts.map(post => (
+            <Link href={`/post/${post.uid}`} key={post.uid}>
+              <a className={styles.post}>
+                <strong>{post.data.title}</strong>
+                <p>{post.data.subtitle}</p>
+                <ul>
+                  <li>
+                    <FiCalendar />
+                    {post.first_publication_date}
+                  </li>
+                  <li>
+                    <FiUser />
+                    {post.data.author}
+                  </li>
+                </ul>
+              </a>
+            </Link>
+          ))}
 
-          <Link href="/">
-            <a className={styles.post}>
-              <strong>Algum título</strong>
-              <p>Pensando em sincronizacao em vez de ciclos de vida.</p>
-              <ul>
-                <li>
-                  <FiCalendar />
-                  15 mar 2021
-                </li>
-                <li>
-                  <FiUser />
-                  Victor Yuri
-                </li>
-              </ul>
-            </a>
-          </Link>
-
-          <button type="button">
-            Carregar mais posts
-          </button>
+          {nextPage && (
+            <button
+              type="button"
+              onClick={handleNextPage}
+            >
+              Carregar mais posts
+            </button>
+          )}
         </div>
       </main>
     </>
