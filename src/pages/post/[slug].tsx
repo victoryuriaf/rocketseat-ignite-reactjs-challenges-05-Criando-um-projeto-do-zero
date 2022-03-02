@@ -140,7 +140,7 @@ export default function Post({
             <div>
               <h3>{navigation.prevPost[0].data.title}</h3>
               <Link href={`/post/${navigation.prevPost[0].uid}`}>
-                <a>Post anterior</a>
+                <a>Previous Post</a>
               </Link>
             </div>
           )}
@@ -149,7 +149,7 @@ export default function Post({
             <div>
               <h3>{navigation.nextPost[0].data.title}</h3>
               <Link href={`/post/${navigation.nextPost[0].uid}`}>
-                <a>Próximo post</a>
+                <a>Next Post</a>
               </Link>
             </div>
           )}
